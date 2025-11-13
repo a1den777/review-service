@@ -19,11 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Review_CreateReview_FullMethodName = "/api.review.v1.Review/CreateReview"
-	Review_UpdateReview_FullMethodName = "/api.review.v1.Review/UpdateReview"
-	Review_DeleteReview_FullMethodName = "/api.review.v1.Review/DeleteReview"
-	Review_GetReview_FullMethodName    = "/api.review.v1.Review/GetReview"
-	Review_ListReview_FullMethodName   = "/api.review.v1.Review/ListReview"
+	Review_CreateReview_FullMethodName      = "/api.review.v1.Review/CreateReview"
+	Review_UpdateReview_FullMethodName      = "/api.review.v1.Review/UpdateReview"
+	Review_DeleteReview_FullMethodName      = "/api.review.v1.Review/DeleteReview"
+	Review_GetReview_FullMethodName         = "/api.review.v1.Review/GetReview"
+	Review_ListReview_FullMethodName        = "/api.review.v1.Review/ListReview"
+	Review_AuditReview_FullMethodName       = "/api.review.v1.Review/AuditReview"
+	Review_CreateReply_FullMethodName       = "/api.review.v1.Review/CreateReply"
+	Review_ListReplies_FullMethodName       = "/api.review.v1.Review/ListReplies"
+	Review_ListPendingReview_FullMethodName = "/api.review.v1.Review/ListPendingReview"
 )
 
 // ReviewClient is the client API for Review service.
@@ -35,6 +39,14 @@ type ReviewClient interface {
 	DeleteReview(ctx context.Context, in *DeleteReviewRequest, opts ...grpc.CallOption) (*DeleteReviewReply, error)
 	GetReview(ctx context.Context, in *GetReviewRequest, opts ...grpc.CallOption) (*GetReviewReply, error)
 	ListReview(ctx context.Context, in *ListReviewRequest, opts ...grpc.CallOption) (*ListReviewReply, error)
+	// O: 审核评价
+	AuditReview(ctx context.Context, in *AuditReviewRequest, opts ...grpc.CallOption) (*AuditReviewReply, error)
+	// B: 商家回复评价
+	CreateReply(ctx context.Context, in *CreateReplyRequest, opts ...grpc.CallOption) (*CreateReplyReply, error)
+	// B/C: 查看评价回复列表
+	ListReplies(ctx context.Context, in *ListRepliesRequest, opts ...grpc.CallOption) (*ListRepliesReply, error)
+	// O: 待审核列表
+	ListPendingReview(ctx context.Context, in *ListPendingReviewRequest, opts ...grpc.CallOption) (*ListPendingReviewReply, error)
 }
 
 type reviewClient struct {
@@ -95,6 +107,46 @@ func (c *reviewClient) ListReview(ctx context.Context, in *ListReviewRequest, op
 	return out, nil
 }
 
+func (c *reviewClient) AuditReview(ctx context.Context, in *AuditReviewRequest, opts ...grpc.CallOption) (*AuditReviewReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuditReviewReply)
+	err := c.cc.Invoke(ctx, Review_AuditReview_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *reviewClient) CreateReply(ctx context.Context, in *CreateReplyRequest, opts ...grpc.CallOption) (*CreateReplyReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateReplyReply)
+	err := c.cc.Invoke(ctx, Review_CreateReply_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *reviewClient) ListReplies(ctx context.Context, in *ListRepliesRequest, opts ...grpc.CallOption) (*ListRepliesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListRepliesReply)
+	err := c.cc.Invoke(ctx, Review_ListReplies_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *reviewClient) ListPendingReview(ctx context.Context, in *ListPendingReviewRequest, opts ...grpc.CallOption) (*ListPendingReviewReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPendingReviewReply)
+	err := c.cc.Invoke(ctx, Review_ListPendingReview_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ReviewServer is the server API for Review service.
 // All implementations must embed UnimplementedReviewServer
 // for forward compatibility.
@@ -104,6 +156,14 @@ type ReviewServer interface {
 	DeleteReview(context.Context, *DeleteReviewRequest) (*DeleteReviewReply, error)
 	GetReview(context.Context, *GetReviewRequest) (*GetReviewReply, error)
 	ListReview(context.Context, *ListReviewRequest) (*ListReviewReply, error)
+	// O: 审核评价
+	AuditReview(context.Context, *AuditReviewRequest) (*AuditReviewReply, error)
+	// B: 商家回复评价
+	CreateReply(context.Context, *CreateReplyRequest) (*CreateReplyReply, error)
+	// B/C: 查看评价回复列表
+	ListReplies(context.Context, *ListRepliesRequest) (*ListRepliesReply, error)
+	// O: 待审核列表
+	ListPendingReview(context.Context, *ListPendingReviewRequest) (*ListPendingReviewReply, error)
 	mustEmbedUnimplementedReviewServer()
 }
 
@@ -128,6 +188,18 @@ func (UnimplementedReviewServer) GetReview(context.Context, *GetReviewRequest) (
 }
 func (UnimplementedReviewServer) ListReview(context.Context, *ListReviewRequest) (*ListReviewReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListReview not implemented")
+}
+func (UnimplementedReviewServer) AuditReview(context.Context, *AuditReviewRequest) (*AuditReviewReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuditReview not implemented")
+}
+func (UnimplementedReviewServer) CreateReply(context.Context, *CreateReplyRequest) (*CreateReplyReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateReply not implemented")
+}
+func (UnimplementedReviewServer) ListReplies(context.Context, *ListRepliesRequest) (*ListRepliesReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListReplies not implemented")
+}
+func (UnimplementedReviewServer) ListPendingReview(context.Context, *ListPendingReviewRequest) (*ListPendingReviewReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListPendingReview not implemented")
 }
 func (UnimplementedReviewServer) mustEmbedUnimplementedReviewServer() {}
 func (UnimplementedReviewServer) testEmbeddedByValue()                {}
@@ -240,6 +312,78 @@ func _Review_ListReview_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Review_AuditReview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuditReviewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReviewServer).AuditReview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Review_AuditReview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReviewServer).AuditReview(ctx, req.(*AuditReviewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Review_CreateReply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateReplyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReviewServer).CreateReply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Review_CreateReply_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReviewServer).CreateReply(ctx, req.(*CreateReplyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Review_ListReplies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRepliesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReviewServer).ListReplies(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Review_ListReplies_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReviewServer).ListReplies(ctx, req.(*ListRepliesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Review_ListPendingReview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPendingReviewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReviewServer).ListPendingReview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Review_ListPendingReview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReviewServer).ListPendingReview(ctx, req.(*ListPendingReviewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Review_ServiceDesc is the grpc.ServiceDesc for Review service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +410,22 @@ var Review_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListReview",
 			Handler:    _Review_ListReview_Handler,
+		},
+		{
+			MethodName: "AuditReview",
+			Handler:    _Review_AuditReview_Handler,
+		},
+		{
+			MethodName: "CreateReply",
+			Handler:    _Review_CreateReply_Handler,
+		},
+		{
+			MethodName: "ListReplies",
+			Handler:    _Review_ListReplies_Handler,
+		},
+		{
+			MethodName: "ListPendingReview",
+			Handler:    _Review_ListPendingReview_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

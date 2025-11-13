@@ -19,16 +19,28 @@ var _ = binding.EncodeURL
 
 const _ = http.SupportPackageIsVersion1
 
+const OperationReviewAuditReview = "/api.review.v1.Review/AuditReview"
+const OperationReviewCreateReply = "/api.review.v1.Review/CreateReply"
 const OperationReviewCreateReview = "/api.review.v1.Review/CreateReview"
 const OperationReviewDeleteReview = "/api.review.v1.Review/DeleteReview"
 const OperationReviewGetReview = "/api.review.v1.Review/GetReview"
+const OperationReviewListPendingReview = "/api.review.v1.Review/ListPendingReview"
+const OperationReviewListReplies = "/api.review.v1.Review/ListReplies"
 const OperationReviewListReview = "/api.review.v1.Review/ListReview"
 const OperationReviewUpdateReview = "/api.review.v1.Review/UpdateReview"
 
 type ReviewHTTPServer interface {
+	// AuditReview O: 审核评价
+	AuditReview(context.Context, *AuditReviewRequest) (*AuditReviewReply, error)
+	// CreateReply B: 商家回复评价
+	CreateReply(context.Context, *CreateReplyRequest) (*CreateReplyReply, error)
 	CreateReview(context.Context, *CreateReviewRequest) (*CreateReviewReply, error)
 	DeleteReview(context.Context, *DeleteReviewRequest) (*DeleteReviewReply, error)
 	GetReview(context.Context, *GetReviewRequest) (*GetReviewReply, error)
+	// ListPendingReview O: 待审核列表
+	ListPendingReview(context.Context, *ListPendingReviewRequest) (*ListPendingReviewReply, error)
+	// ListReplies B/C: 查看评价回复列表
+	ListReplies(context.Context, *ListRepliesRequest) (*ListRepliesReply, error)
 	ListReview(context.Context, *ListReviewRequest) (*ListReviewReply, error)
 	UpdateReview(context.Context, *UpdateReviewRequest) (*UpdateReviewReply, error)
 }
@@ -40,6 +52,10 @@ func RegisterReviewHTTPServer(s *http.Server, srv ReviewHTTPServer) {
 	r.DELETE("/v1/reviews/{id}", _Review_DeleteReview0_HTTP_Handler(srv))
 	r.GET("/v1/reviews/{id}", _Review_GetReview0_HTTP_Handler(srv))
 	r.GET("/v1/reviews", _Review_ListReview0_HTTP_Handler(srv))
+	r.POST("/v1/reviews/{id}:audit", _Review_AuditReview0_HTTP_Handler(srv))
+	r.POST("/v1/reviews/{id}:reply", _Review_CreateReply0_HTTP_Handler(srv))
+	r.GET("/v1/reviews/{id}/replies", _Review_ListReplies0_HTTP_Handler(srv))
+	r.GET("/v1/reviews:pending", _Review_ListPendingReview0_HTTP_Handler(srv))
 }
 
 func _Review_CreateReview0_HTTP_Handler(srv ReviewHTTPServer) func(ctx http.Context) error {
@@ -152,10 +168,109 @@ func _Review_ListReview0_HTTP_Handler(srv ReviewHTTPServer) func(ctx http.Contex
 	}
 }
 
+func _Review_AuditReview0_HTTP_Handler(srv ReviewHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in AuditReviewRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationReviewAuditReview)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.AuditReview(ctx, req.(*AuditReviewRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AuditReviewReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _Review_CreateReply0_HTTP_Handler(srv ReviewHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateReplyRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationReviewCreateReply)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateReply(ctx, req.(*CreateReplyRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CreateReplyReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _Review_ListReplies0_HTTP_Handler(srv ReviewHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListRepliesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationReviewListReplies)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListReplies(ctx, req.(*ListRepliesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListRepliesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _Review_ListPendingReview0_HTTP_Handler(srv ReviewHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListPendingReviewRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationReviewListPendingReview)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListPendingReview(ctx, req.(*ListPendingReviewRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListPendingReviewReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type ReviewHTTPClient interface {
+	// AuditReview O: 审核评价
+	AuditReview(ctx context.Context, req *AuditReviewRequest, opts ...http.CallOption) (rsp *AuditReviewReply, err error)
+	// CreateReply B: 商家回复评价
+	CreateReply(ctx context.Context, req *CreateReplyRequest, opts ...http.CallOption) (rsp *CreateReplyReply, err error)
 	CreateReview(ctx context.Context, req *CreateReviewRequest, opts ...http.CallOption) (rsp *CreateReviewReply, err error)
 	DeleteReview(ctx context.Context, req *DeleteReviewRequest, opts ...http.CallOption) (rsp *DeleteReviewReply, err error)
 	GetReview(ctx context.Context, req *GetReviewRequest, opts ...http.CallOption) (rsp *GetReviewReply, err error)
+	// ListPendingReview O: 待审核列表
+	ListPendingReview(ctx context.Context, req *ListPendingReviewRequest, opts ...http.CallOption) (rsp *ListPendingReviewReply, err error)
+	// ListReplies B/C: 查看评价回复列表
+	ListReplies(ctx context.Context, req *ListRepliesRequest, opts ...http.CallOption) (rsp *ListRepliesReply, err error)
 	ListReview(ctx context.Context, req *ListReviewRequest, opts ...http.CallOption) (rsp *ListReviewReply, err error)
 	UpdateReview(ctx context.Context, req *UpdateReviewRequest, opts ...http.CallOption) (rsp *UpdateReviewReply, err error)
 }
@@ -166,6 +281,34 @@ type ReviewHTTPClientImpl struct {
 
 func NewReviewHTTPClient(client *http.Client) ReviewHTTPClient {
 	return &ReviewHTTPClientImpl{client}
+}
+
+// AuditReview O: 审核评价
+func (c *ReviewHTTPClientImpl) AuditReview(ctx context.Context, in *AuditReviewRequest, opts ...http.CallOption) (*AuditReviewReply, error) {
+	var out AuditReviewReply
+	pattern := "/v1/reviews/{id}:audit"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationReviewAuditReview))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// CreateReply B: 商家回复评价
+func (c *ReviewHTTPClientImpl) CreateReply(ctx context.Context, in *CreateReplyRequest, opts ...http.CallOption) (*CreateReplyReply, error) {
+	var out CreateReplyReply
+	pattern := "/v1/reviews/{id}:reply"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationReviewCreateReply))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 func (c *ReviewHTTPClientImpl) CreateReview(ctx context.Context, in *CreateReviewRequest, opts ...http.CallOption) (*CreateReviewReply, error) {
@@ -199,6 +342,34 @@ func (c *ReviewHTTPClientImpl) GetReview(ctx context.Context, in *GetReviewReque
 	pattern := "/v1/reviews/{id}"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationReviewGetReview))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListPendingReview O: 待审核列表
+func (c *ReviewHTTPClientImpl) ListPendingReview(ctx context.Context, in *ListPendingReviewRequest, opts ...http.CallOption) (*ListPendingReviewReply, error) {
+	var out ListPendingReviewReply
+	pattern := "/v1/reviews:pending"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationReviewListPendingReview))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListReplies B/C: 查看评价回复列表
+func (c *ReviewHTTPClientImpl) ListReplies(ctx context.Context, in *ListRepliesRequest, opts ...http.CallOption) (*ListRepliesReply, error) {
+	var out ListRepliesReply
+	pattern := "/v1/reviews/{id}/replies"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationReviewListReplies))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

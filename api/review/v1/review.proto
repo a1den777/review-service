@@ -16,6 +16,10 @@ message ReviewRecord {
   string content = 4;
   int32 rating = 5;
   int64 created_at = 6; // unix seconds
+  string status = 7; // PENDING|APPROVED|REJECTED
+  string audit_reason = 8;
+  uint64 audit_by = 9;
+  int64 audit_at = 10;
 }
 
 service Review {
@@ -44,6 +48,36 @@ service Review {
     rpc ListReview (ListReviewRequest) returns (ListReviewReply) {
         option (google.api.http) = {
             get: "/v1/reviews"
+        };
+    };
+
+    // O: 审核评价
+    rpc AuditReview (AuditReviewRequest) returns (AuditReviewReply) {
+        option (google.api.http) = {
+            post: "/v1/reviews/{id}:audit"
+            body: "*"
+        };
+    };
+
+    // B: 商家回复评价
+    rpc CreateReply (CreateReplyRequest) returns (CreateReplyReply) {
+        option (google.api.http) = {
+            post: "/v1/reviews/{id}:reply"
+            body: "*"
+        };
+    };
+
+    // B/C: 查看评价回复列表
+    rpc ListReplies (ListRepliesRequest) returns (ListRepliesReply) {
+        option (google.api.http) = {
+            get: "/v1/reviews/{id}/replies"
+        };
+    };
+
+    // O: 待审核列表
+    rpc ListPendingReview (ListPendingReviewRequest) returns (ListPendingReviewReply) {
+        option (google.api.http) = {
+            get: "/v1/reviews:pending"
         };
     };
 }
@@ -94,6 +128,44 @@ message ListReviewRequest {
   string order = 8;
 }
 message ListReviewReply {
+  int64 total = 1;
+  repeated ReviewRecord reviews = 2;
+}
+
+message AuditReviewRequest {
+  uint64 id = 1;
+  string decision = 2; // APPROVE|REJECT
+  string reason = 3;
+  uint64 operator_id = 4;
+}
+message AuditReviewReply {}
+
+message CreateReplyRequest {
+  uint64 id = 1; // review id
+  uint64 merchant_id = 2;
+  string content = 3;
+}
+message CreateReplyReply {}
+
+message ListRepliesRequest {
+  uint64 id = 1; // review id
+}
+message ReplyRecord {
+  uint64 id = 1;
+  uint64 review_id = 2;
+  uint64 merchant_id = 3;
+  string content = 4;
+  int64 created_at = 5;
+}
+message ListRepliesReply {
+  repeated ReplyRecord replies = 1;
+}
+
+message ListPendingReviewRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+message ListPendingReviewReply {
   int64 total = 1;
   repeated ReviewRecord reviews = 2;
 }

@@ -3,9 +3,28 @@
 
 openapi: 3.0.3
 info:
-    title: Review API
+    title: ""
     version: 0.0.1
 paths:
+    /helloworld/{name}:
+        get:
+            tags:
+                - Greeter
+            description: Sends a greeting
+            operationId: Greeter_SayHello
+            parameters:
+                - name: name
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/helloworld.v1.HelloReply'
     /v1/reviews:
         get:
             tags:
@@ -135,8 +154,127 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/api.review.v1.DeleteReviewReply'
+    /v1/reviews/{id}/replies:
+        get:
+            tags:
+                - Review
+            description: 'B/C: 查看评价回复列表'
+            operationId: Review_ListReplies
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.ListRepliesReply'
+    /v1/reviews/{id}:audit:
+        post:
+            tags:
+                - Review
+            description: 'O: 审核评价'
+            operationId: Review_AuditReview
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.review.v1.AuditReviewRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.AuditReviewReply'
+    /v1/reviews/{id}:reply:
+        post:
+            tags:
+                - Review
+            description: 'B: 商家回复评价'
+            operationId: Review_CreateReply
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.review.v1.CreateReplyRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.CreateReplyReply'
+    /v1/reviews:pending:
+        get:
+            tags:
+                - Review
+            description: 'O: 待审核列表'
+            operationId: Review_ListPendingReview
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.ListPendingReviewReply'
 components:
     schemas:
+        api.review.v1.AuditReviewReply:
+            type: object
+            properties: {}
+        api.review.v1.AuditReviewRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                decision:
+                    type: string
+                reason:
+                    type: string
+                operatorId:
+                    type: string
+        api.review.v1.CreateReplyReply:
+            type: object
+            properties: {}
+        api.review.v1.CreateReplyRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                merchantId:
+                    type: string
+                content:
+                    type: string
         api.review.v1.CreateReviewReply:
             type: object
             properties:
@@ -162,6 +300,22 @@ components:
             properties:
                 review:
                     $ref: '#/components/schemas/api.review.v1.ReviewRecord'
+        api.review.v1.ListPendingReviewReply:
+            type: object
+            properties:
+                total:
+                    type: string
+                reviews:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.review.v1.ReviewRecord'
+        api.review.v1.ListRepliesReply:
+            type: object
+            properties:
+                replies:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.review.v1.ReplyRecord'
         api.review.v1.ListReviewReply:
             type: object
             properties:
@@ -171,6 +325,19 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/api.review.v1.ReviewRecord'
+        api.review.v1.ReplyRecord:
+            type: object
+            properties:
+                id:
+                    type: string
+                reviewId:
+                    type: string
+                merchantId:
+                    type: string
+                content:
+                    type: string
+                createdAt:
+                    type: string
         api.review.v1.ReviewRecord:
             type: object
             properties:
@@ -186,6 +353,14 @@ components:
                     type: integer
                     format: int32
                 createdAt:
+                    type: string
+                status:
+                    type: string
+                auditReason:
+                    type: string
+                auditBy:
+                    type: string
+                auditAt:
                     type: string
             description: Review entity
         api.review.v1.UpdateReviewReply:
@@ -203,5 +378,13 @@ components:
                 rating:
                     type: integer
                     format: int32
+        helloworld.v1.HelloReply:
+            type: object
+            properties:
+                message:
+                    type: string
+            description: The response message containing the greetings
 tags:
+    - name: Greeter
+      description: The greeting service definition.
     - name: Review
