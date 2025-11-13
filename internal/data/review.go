@@ -28,8 +28,8 @@ func NewReviewRepo(data *Data, logger log.Logger) biz.ReviewRepo {
 
 func (r *reviewRepo) Create(ctx context.Context, in *biz.Review) (uint64, error) {
     res, err := r.data.DB.ExecContext(ctx, `
-        INSERT INTO reviews (user_id, subject, content, rating)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO reviews (user_id, subject, content, rating, status)
+        VALUES (?, ?, ?, ?, 'PENDING')
     `, in.UserID, in.Subject, in.Content, in.Rating)
     if err != nil {
         return 0, err
@@ -38,7 +38,7 @@ func (r *reviewRepo) Create(ctx context.Context, in *biz.Review) (uint64, error)
     // invalidate cache
     _ = r.invalidate(ctx, uint64(id))
     // publish event
-    r.publish(ctx, "create", &biz.Review{ID: uint64(id), UserID: in.UserID, Subject: in.Subject, Content: in.Content, Rating: in.Rating})
+    r.publish(ctx, "create", &biz.Review{ID: uint64(id), UserID: in.UserID, Subject: in.Subject, Content: in.Content, Rating: in.Rating, Status: "PENDING"})
     return uint64(id), nil
 }
 
@@ -55,14 +55,14 @@ func (r *reviewRepo) Get(ctx context.Context, id uint64) (*biz.Review, error) {
     }
 
     row := r.data.DB.QueryRowContext(ctx, `
-        SELECT id, user_id, subject, content, rating FROM reviews WHERE id = ?
+        SELECT id, user_id, subject, content, rating, status FROM reviews WHERE id = ?
     `, id)
     var out biz.Review
     var iid uint64
     var uid uint64
-    var subject, content string
+    var subject, content, status string
     var rating int32
-    if err := row.Scan(&iid, &uid, &subject, &content, &rating); err != nil {
+    if err := row.Scan(&iid, &uid, &subject, &content, &rating, &status); err != nil {
         if err == sql.ErrNoRows {
             return nil, biz.ErrReviewNotFound
         }
@@ -73,6 +73,7 @@ func (r *reviewRepo) Get(ctx context.Context, id uint64) (*biz.Review, error) {
     out.Subject = subject
     out.Content = content
     out.Rating = rating
+    out.Status = status
 
     // set cache
     if r.data.RDB != nil {
@@ -195,7 +196,7 @@ func (r *reviewRepo) List(ctx context.Context, in *biz.ReviewQuery) ([]*biz.Revi
         return nil, 0, err
     }
     rows, err := r.data.DB.QueryContext(ctx, `
-        SELECT id, user_id, subject, content, rating
+        SELECT id, user_id, subject, content, rating, status
         FROM reviews
         ORDER BY id DESC
         LIMIT ? OFFSET ?
@@ -206,10 +207,83 @@ func (r *reviewRepo) List(ctx context.Context, in *biz.ReviewQuery) ([]*biz.Revi
     for rows.Next() {
         var out biz.Review
         var iid, uid uint64
-        var subject, content string
+        var subject, content, status string
         var rating int32
-        if err := rows.Scan(&iid, &uid, &subject, &content, &rating); err != nil { return nil, 0, err }
-        out.ID = iid; out.UserID = uid; out.Subject = subject; out.Content = content; out.Rating = rating
+        if err := rows.Scan(&iid, &uid, &subject, &content, &rating, &status); err != nil { return nil, 0, err }
+        out.ID = iid; out.UserID = uid; out.Subject = subject; out.Content = content; out.Rating = rating; out.Status = status
+        list = append(list, &out)
+    }
+    if err := rows.Err(); err != nil { return nil, 0, err }
+    return list, total, nil
+}
+
+func (r *reviewRepo) Audit(ctx context.Context, id uint64, decision string, reason string, operatorID uint64) error {
+    var status string
+    switch decision {
+    case "APPROVE":
+        status = "APPROVED"
+    case "REJECT":
+        status = "REJECTED"
+    default:
+        return fmt.Errorf("invalid decision")
+    }
+    _, err := r.data.DB.ExecContext(ctx, `
+        UPDATE reviews SET status = ?, audit_reason = ?, audit_by = ?, audit_at = CURRENT_TIMESTAMP WHERE id = ?
+    `, status, reason, operatorID, id)
+    if err != nil { return err }
+    r.publish(ctx, "audit", &biz.Review{ID: id, Status: status})
+    _ = r.invalidate(ctx, id)
+    return nil
+}
+
+func (r *reviewRepo) AddReply(ctx context.Context, in *biz.ReviewReply) error {
+    _, err := r.data.DB.ExecContext(ctx, `
+        INSERT INTO review_replies (review_id, merchant_id, content) VALUES (?, ?, ?)
+    `, in.ReviewID, in.MerchantID, in.Content)
+    if err != nil { return err }
+    r.publish(ctx, "reply", &biz.Review{ID: in.ReviewID})
+    return nil
+}
+
+func (r *reviewRepo) ListReplies(ctx context.Context, reviewID uint64) ([]*biz.ReviewReply, error) {
+    rows, err := r.data.DB.QueryContext(ctx, `
+        SELECT id, review_id, merchant_id, content, UNIX_TIMESTAMP(created_at) FROM review_replies WHERE review_id = ? ORDER BY id ASC
+    `, reviewID)
+    if err != nil { return nil, err }
+    defer rows.Close()
+    var list []*biz.ReviewReply
+    for rows.Next() {
+        var it biz.ReviewReply
+        var ts int64
+        if err := rows.Scan(&it.ID, &it.ReviewID, &it.MerchantID, &it.Content, &ts); err != nil { return nil, err }
+        it.CreatedAt = ts
+        list = append(list, &it)
+    }
+    if err := rows.Err(); err != nil { return nil, err }
+    return list, nil
+}
+
+func (r *reviewRepo) ListPending(ctx context.Context, page, pageSize int32) ([]*biz.Review, int64, error) {
+    if page < 1 { page = 1 }
+    if pageSize <= 0 || pageSize > 100 { pageSize = 20 }
+    offset := (page - 1) * pageSize
+    var total int64
+    if err := r.data.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM reviews WHERE status = 'PENDING'`).Scan(&total); err != nil {
+        return nil, 0, err
+    }
+    rows, err := r.data.DB.QueryContext(ctx, `
+        SELECT id, user_id, subject, content, rating, status FROM reviews WHERE status = 'PENDING' ORDER BY id DESC LIMIT ? OFFSET ?
+    `, pageSize, offset)
+    if err != nil { return nil, 0, err }
+    defer rows.Close()
+    var list []*biz.Review
+    for rows.Next() {
+        var out biz.Review
+        var iid, uid uint64
+        var subject, content, status string
+        var rating int32
+        if err := rows.Scan(&iid, &uid, &subject, &content, &rating, &status); err != nil { return nil, 0, err }
+        out.ID = iid; out.UserID = uid; out.Subject = subject; out.Content = content; out.Rating = rating; out.Status = status
         list = append(list, &out)
     }
     if err := rows.Err(); err != nil { return nil, 0, err }

@@ -17,6 +17,7 @@ type Review struct {
     Subject string
     Content string
     Rating  int32
+    Status  string
 }
 
 type ReviewRepo interface {
@@ -25,6 +26,10 @@ type ReviewRepo interface {
     Delete(context.Context, uint64) error
     Get(context.Context, uint64) (*Review, error)
     List(context.Context, *ReviewQuery) ([]*Review, int64, error)
+    Audit(context.Context, uint64, string, string, uint64) error
+    AddReply(context.Context, *ReviewReply) error
+    ListReplies(context.Context, uint64) ([]*ReviewReply, error)
+    ListPending(context.Context, int32, int32) ([]*Review, int64, error)
 }
 
 type ReviewUsecase struct {
@@ -80,4 +85,28 @@ func (uc *ReviewUsecase) List(ctx context.Context, in *ReviewQuery) ([]*Review, 
     if in.Order == "" { in.Order = "desc" }
     if in.Sort == "" { in.Sort = "relevance" }
     return uc.repo.List(ctx, in)
+}
+
+type ReviewReply struct {
+    ID         uint64
+    ReviewID   uint64
+    MerchantID uint64
+    Content    string
+    CreatedAt  int64
+}
+
+func (uc *ReviewUsecase) Audit(ctx context.Context, id uint64, decision string, reason string, operatorID uint64) error {
+    return uc.repo.Audit(ctx, id, decision, reason, operatorID)
+}
+
+func (uc *ReviewUsecase) AddReply(ctx context.Context, in *ReviewReply) error {
+    return uc.repo.AddReply(ctx, in)
+}
+
+func (uc *ReviewUsecase) ListReplies(ctx context.Context, reviewID uint64) ([]*ReviewReply, error) {
+    return uc.repo.ListReplies(ctx, reviewID)
+}
+
+func (uc *ReviewUsecase) ListPending(ctx context.Context, page, pageSize int32) ([]*Review, int64, error) {
+    return uc.repo.ListPending(ctx, page, pageSize)
 }
