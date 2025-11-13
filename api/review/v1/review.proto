@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package api.review.v1;
+
+option go_package = "review-service/api/review/v1;v1";
+option java_multiple_files = true;
+option java_package = "api.review.v1";
+
+import "google/api/annotations.proto";
+
+// Review entity
+message ReviewRecord {
+  uint64 id = 1;
+  uint64 user_id = 2;
+  string subject = 3;
+  string content = 4;
+  int32 rating = 5;
+  int64 created_at = 6; // unix seconds
+}
+
+service Review {
+    rpc CreateReview (CreateReviewRequest) returns (CreateReviewReply) {
+        option (google.api.http) = {
+            post: "/v1/reviews"
+            body: "*"
+        };
+    };
+    rpc UpdateReview (UpdateReviewRequest) returns (UpdateReviewReply) {
+        option (google.api.http) = {
+            put: "/v1/reviews/{id}"
+            body: "*"
+        };
+    };
+    rpc DeleteReview (DeleteReviewRequest) returns (DeleteReviewReply) {
+        option (google.api.http) = {
+            delete: "/v1/reviews/{id}"
+        };
+    };
+    rpc GetReview (GetReviewRequest) returns (GetReviewReply) {
+        option (google.api.http) = {
+            get: "/v1/reviews/{id}"
+        };
+    };
+    rpc ListReview (ListReviewRequest) returns (ListReviewReply) {
+        option (google.api.http) = {
+            get: "/v1/reviews"
+        };
+    };
+}
+
+message CreateReviewRequest {
+  uint64 user_id = 1;
+  string subject = 2;
+  string content = 3;
+  int32 rating = 4;
+}
+message CreateReviewReply {
+  uint64 id = 1;
+}
+
+message UpdateReviewRequest {
+  uint64 id = 1;
+  string subject = 2;
+  string content = 3;
+  int32 rating = 4;
+}
+message UpdateReviewReply {}
+
+message DeleteReviewRequest {
+  uint64 id = 1;
+}
+message DeleteReviewReply {}
+
+message GetReviewRequest {
+  uint64 id = 1;
+}
+message GetReviewReply {
+  ReviewRecord review = 1;
+}
+
+message ListReviewRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  // 关键字搜索（匹配 subject、content，多字段相关性检索）
+  string q = 3;
+  // 过滤：指定用户的评价
+  uint64 user_id = 4;
+  // 过滤：评分范围
+  int32 rating_min = 5;
+  int32 rating_max = 6;
+  // 排序字段："relevance"|"ts"|"rating"（默认：relevance）
+  string sort = 7;
+  // 排序方向："asc"|"desc"（默认：desc）
+  string order = 8;
+}
+message ListReviewReply {
+  int64 total = 1;
+  repeated ReviewRecord reviews = 2;
+}

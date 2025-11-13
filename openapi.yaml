@@ -1,0 +1,207 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: Review API
+    version: 0.0.1
+paths:
+    /v1/reviews:
+        get:
+            tags:
+                - Review
+            operationId: Review_ListReview
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: q
+                  in: query
+                  description: 关键字搜索（匹配 subject、content，多字段相关性检索）
+                  schema:
+                    type: string
+                - name: userId
+                  in: query
+                  description: 过滤：指定用户的评价
+                  schema:
+                    type: string
+                - name: ratingMin
+                  in: query
+                  description: 过滤：评分范围
+                  schema:
+                    type: integer
+                    format: int32
+                - name: ratingMax
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: sort
+                  in: query
+                  description: 排序字段："relevance"|"ts"|"rating"（默认：relevance）
+                  schema:
+                    type: string
+                - name: order
+                  in: query
+                  description: 排序方向："asc"|"desc"（默认：desc）
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.ListReviewReply'
+        post:
+            tags:
+                - Review
+            operationId: Review_CreateReview
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.review.v1.CreateReviewRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.CreateReviewReply'
+    /v1/reviews/{id}:
+        get:
+            tags:
+                - Review
+            operationId: Review_GetReview
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.GetReviewReply'
+        put:
+            tags:
+                - Review
+            operationId: Review_UpdateReview
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.review.v1.UpdateReviewRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.UpdateReviewReply'
+        delete:
+            tags:
+                - Review
+            operationId: Review_DeleteReview
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.DeleteReviewReply'
+components:
+    schemas:
+        api.review.v1.CreateReviewReply:
+            type: object
+            properties:
+                id:
+                    type: string
+        api.review.v1.CreateReviewRequest:
+            type: object
+            properties:
+                userId:
+                    type: string
+                subject:
+                    type: string
+                content:
+                    type: string
+                rating:
+                    type: integer
+                    format: int32
+        api.review.v1.DeleteReviewReply:
+            type: object
+            properties: {}
+        api.review.v1.GetReviewReply:
+            type: object
+            properties:
+                review:
+                    $ref: '#/components/schemas/api.review.v1.ReviewRecord'
+        api.review.v1.ListReviewReply:
+            type: object
+            properties:
+                total:
+                    type: string
+                reviews:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.review.v1.ReviewRecord'
+        api.review.v1.ReviewRecord:
+            type: object
+            properties:
+                id:
+                    type: string
+                userId:
+                    type: string
+                subject:
+                    type: string
+                content:
+                    type: string
+                rating:
+                    type: integer
+                    format: int32
+                createdAt:
+                    type: string
+            description: Review entity
+        api.review.v1.UpdateReviewReply:
+            type: object
+            properties: {}
+        api.review.v1.UpdateReviewRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                subject:
+                    type: string
+                content:
+                    type: string
+                rating:
+                    type: integer
+                    format: int32
+tags:
+    - name: Review
